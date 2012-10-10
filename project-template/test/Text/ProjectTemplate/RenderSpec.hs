@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Text.ProjectTemplateSpec (spec) where
+module Text.ProjectTemplate.RenderSpec (spec) where
 
 import ClassyPrelude
 import Test.Hspec

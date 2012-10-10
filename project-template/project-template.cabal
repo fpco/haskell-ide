@@ -13,6 +13,8 @@ cabal-version:       >=1.8
 
 library
   exposed-modules:     Text.ProjectTemplate
+                       Text.ProjectTemplate.Render
+                       Text.ProjectTemplate.Types
   build-depends:       base                         >= 4          && < 5
                      , classy-prelude               >= 0.3
   ghc-options:     -Wall
@@ -20,7 +22,7 @@ library
 test-suite test
     hs-source-dirs: test
     main-is: Spec.hs
-    other-modules: Text.ProjectTemplateSpec
+    other-modules: Text.ProjectTemplate.RenderSpec
     type: exitcode-stdio-1.0
     build-depends:   base
                    , project-template
