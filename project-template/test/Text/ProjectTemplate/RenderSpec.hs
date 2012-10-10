@@ -9,26 +9,26 @@ import Text.ProjectTemplate
 spec :: Spec
 spec = do
     describe "eval" $ do
-        it "literals" $ eval empty (ExpLiteral True) `shouldBe` Success True
+        it "literals" $ evalBool empty (ExpLiteralBool True) `shouldBe` Success True
     describe "renderFile" $ do
         it "simple file" $ renderFile empty File
-            { fileName = singleton $ ContentText $ ExpLiteral "foo.txt"
-            , fileToGenerate = ExpLiteral True
+            { fileName = ExpLiteralText "foo.txt"
+            , fileToGenerate = ExpLiteralBool True
             , fileContents = Right "Hello World"
             } `shouldBe` Success (singleton "foo.txt" (Right "Hello World"))
         it "conditional file, excluded" $ renderFile uv File
-            { fileName = singleton $ ContentText $ ExpLiteral "foo.txt"
-            , fileToGenerate = ExpNe (ExpFieldText "name") (ExpLiteral "michael")
+            { fileName = ExpLiteralText "foo.txt"
+            , fileToGenerate = ExpNot $ ExpEq (ExpFieldText "name") (ExpLiteralText "michael")
             , fileContents = Right "Hello World"
             } `shouldBe` Success empty
         it "conditional file, included" $ renderFile uv File
-            { fileName = singleton $ ContentText $ ExpLiteral "foo.txt"
-            , fileToGenerate = ExpEq (ExpFieldText "name") (ExpLiteral "michael")
+            { fileName = ExpLiteralText "foo.txt"
+            , fileToGenerate = ExpEq (ExpFieldText "name") (ExpLiteralText "michael")
             , fileContents = Right "Hello World"
             } `shouldBe` Success (singleton "foo.txt" (Right "Hello World"))
         it "conditional file, invalid spec" $ renderFile uv File
-            { fileName = singleton $ ContentText $ ExpLiteral "foo.txt"
-            , fileToGenerate = ExpNe (ExpFieldText "male") (ExpLiteral "michael")
+            { fileName = ExpLiteralText "foo.txt"
+            , fileToGenerate = ExpNot $ ExpEq (ExpFieldText "male") (ExpLiteralText "michael")
             , fileContents = Right "Hello World"
             } `shouldBe` Failure (singleton $ ExpectedText "male" (UVBool True))
     describe "renderProject" $ do
@@ -48,15 +48,14 @@ spec = do
             ]
         , projectFiles = fromList
             [ File
-                { fileName = fromList
-                    [ ContentText $ ExpFieldText "name"
-                    , ContentText $ ExpLiteral "-"
-                    , ContentConditional (ExpFieldBool "male") $ singleton $ ContentText $ ExpLiteral "man"
-                    , ContentConditional (ExpEq (ExpFieldBool "male") (ExpLiteral False))
-                        $ singleton $ ContentText $ ExpLiteral "woman"
-                    , ContentText $ ExpLiteral ".txt"
+                { fileName = ExpConcat $ fromList
+                    [ ExpFieldText "name"
+                    , ExpLiteralText "-"
+                    , ExpConditional (ExpFieldBool "male") $ ExpLiteralText "man"
+                    , ExpConditional (ExpNot (ExpFieldBool "male")) $ ExpLiteralText "woman"
+                    , ExpLiteralText ".txt"
                     ]
-                , fileToGenerate = ExpLiteral True
+                , fileToGenerate = ExpLiteralBool True
                 , fileContents = Right "THIS IS A FILE"
                 }
             ]
