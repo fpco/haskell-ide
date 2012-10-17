@@ -53,8 +53,12 @@ data TextExp = ExpFieldText Text
 data File = File
     { fileName :: TextExp
     , fileToGenerate :: BoolExp
-    , fileContents :: Either TextExp ByteString
+    , fileContents :: FileContents
     }
+    deriving (Show, Eq)
+
+data FileContents = FileContentsText TextExp
+                  | FileContentsByteString ByteString
     deriving (Show, Eq)
 
 data EvalException = MissingUserValue Text

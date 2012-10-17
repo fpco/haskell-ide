@@ -39,7 +39,9 @@ renderFile uv File{..} =
         Success False -> Success empty
         Success True -> singleton
             <$> evalText uv fileName
-            <*> either (fmap Left . evalText uv) (pure . Right) fileContents
+            <*> (case fileContents of
+                    FileContentsText t -> Left <$> evalText uv t
+                    FileContentsByteString bs -> pure $ Right bs)
 
 renderProject :: UserValues -> Project -> Result FileOutput
 renderProject uv Project {..} = concat . toList <$> sequenceA (map (renderFile uv) projectFiles)

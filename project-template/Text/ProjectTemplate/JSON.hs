@@ -10,6 +10,7 @@ import ClassyPrelude
 import Text.ProjectTemplate.Types
 import Data.Aeson
 import Control.Monad (mzero)
+import qualified Data.ByteString.Base64 as B64
 
 instance ToJSON Project where
     toJSON Project {..} = object
@@ -74,6 +75,25 @@ instance FromJSON File where
         <*> o .: "togenerate"
         <*> o .: "contents"
     parseJSON _ = mzero
+
+instance ToJSON FileContents where
+    toJSON (FileContentsText t) = object
+        [ "type" .= asText "text"
+        , "value" .= t
+        ]
+    toJSON (FileContentsByteString bs) = object
+        [ "type" .= asText "bytestring"
+        , "value" .= B64.encode bs
+        ]
+instance FromJSON FileContents where
+    parseJSON (Object o) = do
+        t <- o .: "type"
+        v <- o .: "value"
+        case asText t of
+            "text" -> FileContentsText <$> parseJSON v
+            "bytestring" -> parseJSON v >>= either fail (return . FileContentsByteString) . B64.decode
+            _ -> fail "Unknown type"
+    parseJSON _ = fail "Expected an object"
 
 instance ToJSON BoolExp where
     toJSON (ExpAnd x y) = object
