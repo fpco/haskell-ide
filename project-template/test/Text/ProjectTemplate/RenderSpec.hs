@@ -14,28 +14,28 @@ spec = do
         it "simple file" $ renderFile empty File
             { fileName = ExpLiteralText "foo.txt"
             , fileToGenerate = ExpLiteralBool True
-            , fileContents = Right "Hello World"
+            , fileContents = FileContentsByteString "Hello World"
             } `shouldBe` Success (singleton "foo.txt" (Right "Hello World"))
         it "conditional file, excluded" $ renderFile uv File
             { fileName = ExpLiteralText "foo.txt"
             , fileToGenerate = ExpNot $ ExpEq (ExpFieldText "name") (ExpLiteralText "michael")
-            , fileContents = Right "Hello World"
+            , fileContents = FileContentsByteString "Hello World"
             } `shouldBe` Success empty
         it "conditional file, included" $ renderFile uv File
             { fileName = ExpLiteralText "foo.txt"
             , fileToGenerate = ExpEq (ExpFieldText "name") (ExpLiteralText "michael")
-            , fileContents = Right "Hello World"
+            , fileContents = FileContentsByteString "Hello World"
             } `shouldBe` Success (singleton "foo.txt" (Right "Hello World"))
         it "conditional file, invalid spec" $ renderFile uv File
             { fileName = ExpLiteralText "foo.txt"
             , fileToGenerate = ExpNot $ ExpEq (ExpFieldText "male") (ExpLiteralText "michael")
-            , fileContents = Right "Hello World"
+            , fileContents = FileContentsByteString "Hello World"
             } `shouldBe` Failure (singleton $ ExpectedText "male" (UVBool True))
     describe "renderProject" $ do
         it "works" $ do
             renderProject uv project `shouldBe` Success (singleton "michael-man.txt" $ Right "THIS IS A FILE")
   where
-    uv = fromList
+    uv = asHashMap $ fromList
         [ ("name", UVText "michael")
         , ("male", UVBool True)
         ]
@@ -56,7 +56,7 @@ spec = do
                     , ExpLiteralText ".txt"
                     ]
                 , fileToGenerate = ExpLiteralBool True
-                , fileContents = Right "THIS IS A FILE"
+                , fileContents = FileContentsByteString "THIS IS A FILE"
                 }
             ]
         }

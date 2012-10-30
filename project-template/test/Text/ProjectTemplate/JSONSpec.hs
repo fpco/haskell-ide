@@ -29,7 +29,7 @@ spec = do
                     , ExpLiteralText ".txt"
                     ]
                 , fileToGenerate = ExpLiteralBool True
-                , fileContents = Right "THIS IS A FILE"
+                , fileContents = FileContentsByteString "THIS IS A FILE"
                 }
             ]
         }
