@@ -1,57 +1,49 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
 module Text.MultiFile where
 
+import           ClassyPrelude.Conduit
 import           Control.Monad                (unless)
-import           Control.Monad.IO.Class       (MonadIO, liftIO)
-import           Control.Monad.Trans.Class    (lift)
 import           Control.Monad.Trans.Resource (runExceptionT)
 import           Control.Monad.Writer         (MonadWriter, tell)
 import qualified Data.ByteString              as S
 import qualified Data.ByteString.Base64       as B64
-import qualified Data.ByteString.Lazy         as L
-import           Data.Conduit                 (Conduit, MonadResource, Sink,
-                                               await, awaitForever, leftover,
-                                               yield, ($$), (=$))
 import           Data.Conduit.Binary          (sinkFile)
 import           Data.Conduit.List            (sinkNull)
-import qualified Data.Conduit.List            as CL
+import           Data.Conduit.List            (consume)
 import qualified Data.Conduit.Text            as CT
 import           Data.Functor.Identity        (runIdentity)
-import qualified Data.Map                     as Map
-import           Data.Text                    (Text)
-import qualified Data.Text                    as T
 import           Data.Text.Encoding           (encodeUtf8)
 import           Filesystem                   (createTree)
-import           Filesystem.Path.CurrentOS    (FilePath, directory, encode,
-                                               encodeString, fromText, (</>))
-import           Prelude                      hiding (FilePath)
+import           Filesystem.Path.CurrentOS    (directory, encode, encodeString,
+                                               fromText)
 
 fsPerFile :: MonadResource m
           => FilePath -- ^ root
           -> FilePath -- ^ current relpath
-          -> Sink S.ByteString m ()
+          -> Sink ByteString m ()
 fsPerFile root rel = do
     liftIO $ createTree $ directory fp
     sinkFile $ encodeString fp
   where
     fp = root </> rel
 
-memPerFile :: MonadWriter (Map.Map FilePath L.ByteString) m
+memPerFile :: MonadWriter (Map FilePath LByteString) m
            => FilePath -- ^ current relpath
-           -> Sink S.ByteString m ()
+           -> Sink ByteString m ()
 memPerFile fp = do
-    bss <- CL.consume
-    lift $ tell $ Map.singleton fp $ L.fromChunks bss
+    bss <- consume
+    lift $ tell $ singleton fp $ fromChunks bss
 
 unpackMultiFile
     :: MonadResource m
-    => (FilePath -> Sink S.ByteString m ()) -- ^ receive individual files
+    => (FilePath -> Sink ByteString m ()) -- ^ receive individual files
     -> (Text -> Text) -- ^ fix each input line, good for variables
-    -> Sink S.ByteString m ()
+    -> Sink ByteString m ()
 unpackMultiFile perFile fixLine =
-    CT.decode CT.utf8 =$ CT.lines =$ CL.map fixLine =$ start
+    CT.decode CT.utf8 =$ CT.lines =$ map fixLine =$ start
   where
     start =
         await >>= maybe (return ()) go
@@ -82,7 +74,7 @@ unpackMultiFile perFile fixLine =
                     textLoop
 
     getFileName t =
-        case T.words t of
+        case words t of
             ["{-#", "START_FILE", fn, "#-}"] -> Just (fn, False)
             ["{-#", "START_FILE", "BASE64", fn, "#-}"] -> Just (fn, True)
             _ -> Nothing
@@ -90,12 +82,12 @@ unpackMultiFile perFile fixLine =
 createMultiFile
     :: MonadIO m
     => FilePath -- ^ folder containing the files
-    -> Conduit FilePath m S.ByteString -- ^ FilePath is relative to containing folder
+    -> Conduit FilePath m ByteString -- ^ FilePath is relative to containing folder
 createMultiFile root = do
     awaitForever handleFile
   where
     handleFile fp' = do
-        bs <- liftIO $ S.readFile $ encodeString fp
+        bs <- readFile fp
         case runIdentity $ runExceptionT $ yield bs $$ CT.decode CT.utf8 =$ sinkNull of
             Left{} -> do
                 yield "{-# START_FILE BASE64 "
