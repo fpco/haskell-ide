@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
@@ -5,11 +6,12 @@
 module Text.ProjectTemplate where
 
 import           ClassyPrelude.Conduit
-import           Control.Monad.Writer         (MonadWriter, tell)
-import qualified Data.ByteString.Base64       as B64
-import           Data.Functor.Identity        (runIdentity)
-import           Filesystem                   (createTree)
-import           Filesystem.Path.CurrentOS    (directory, encode, fromText)
+import           Control.Monad.Writer      (MonadWriter, tell)
+import qualified Data.ByteString.Base64    as B64
+import           Data.Functor.Identity     (runIdentity)
+import           Data.Typeable             (Typeable)
+import           Filesystem                (createTree)
+import           Filesystem.Path.CurrentOS (directory, encode, fromText)
 
 fsPerFile :: MonadResource m
           => FilePath -- ^ root
@@ -41,7 +43,7 @@ unpackMultiFile perFile fixLine =
       where
         go t =
             case getFileName t of
-                Nothing -> error $ "Invalid input: " ++ show t
+                Nothing -> lift $ monadThrow $ InvalidInput t
                 Just (fp', isBinary) -> do
                     let src
                             | isBinary  = binaryLoop
@@ -50,7 +52,7 @@ unpackMultiFile perFile fixLine =
                     start
 
     binaryLoop = do
-        await >>= maybe (error "binaryLoop needs 1 line") go
+        await >>= maybe (lift $ monadThrow BinaryLoopNeedsOneLine) go
       where
         go = yield . B64.decodeLenient . encodeUtf8
     textLoop isFirst =
@@ -97,3 +99,8 @@ createMultiFile = awaitForever $ \(fp, getBS) -> do
             yield " #-}\n"
             yield bs
             yield "\n"
+
+data ProjectTemplateException = InvalidInput Text
+                              | BinaryLoopNeedsOneLine
+    deriving (Show, Typeable)
+instance Exception ProjectTemplateException
