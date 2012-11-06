@@ -13,14 +13,8 @@ cabal-version:       >=1.8
 
 library
   exposed-modules:     Text.ProjectTemplate
-                       Text.ProjectTemplate.JSON
-                       Text.ProjectTemplate.Render
-                       Text.ProjectTemplate.Types
-                       Text.MultiFile
   build-depends:       base                         >= 4          && < 5
-                     , classy-prelude               >= 0.3
                      , classy-prelude-conduit       >= 0.3
-                     , aeson                        >= 0.6
                      , base64-bytestring
                      , system-filepath              >= 0.4
                      , resourcet                    >= 0.4
@@ -35,14 +29,12 @@ library
 test-suite test
     hs-source-dirs: test
     main-is: Spec.hs
-    other-modules: Text.ProjectTemplate.RenderSpec
-                   Text.ProjectTemplate.JSONSpec
+    other-modules: Text.ProjectTemplateSpec
     type: exitcode-stdio-1.0
     build-depends:   base
                    , project-template
                    , classy-prelude
                    , hspec >= 1.3
-                   , aeson
     ghc-options:     -Wall
 
 source-repository head
