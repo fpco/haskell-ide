@@ -18,8 +18,8 @@ spec = do
                         execWriter
                       $ runExceptionT_
                       $ mapM_ (yield . second return) (unpack m)
-                     $$ createMultiFile
-                     =$ unpackMultiFile memPerFile id
+                     $$ createTemplate
+                     =$ unpackTemplate receiveMem id
                 m'' = pack $ map (second $ concat . toChunks) $ unpack m'
              in if m == m'' then True else error (show m'')
 
