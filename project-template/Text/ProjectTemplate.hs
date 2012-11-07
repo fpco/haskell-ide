@@ -19,7 +19,6 @@ module Text.ProjectTemplate
 import           ClassyPrelude.Conduit
 import           Control.Monad.Writer      (MonadWriter, tell)
 import qualified Data.ByteString.Base64    as B64
-import           Data.Functor.Identity     (runIdentity)
 import           Data.Typeable             (Typeable)
 import           Filesystem                (createTree)
 import           Filesystem.Path.CurrentOS (directory, encode, fromText)
@@ -32,7 +31,7 @@ createTemplate
     => GInfConduit (FilePath, m ByteString) m ByteString
 createTemplate = awaitForever $ \(fp, getBS) -> do
     bs <- lift getBS
-    case runIdentity $ runExceptionT $ yield bs $$ decodeUtf8 =$ sinkNull of
+    case runException $ yield bs $$ decodeUtf8 =$ sinkNull of
         Left{} -> do
             yield "{-# START_FILE BASE64 "
             yield $ encode fp

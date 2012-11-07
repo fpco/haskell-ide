@@ -22,7 +22,7 @@ library
                      , bytestring                   >= 0.9
                      , transformers                 >= 0.2
                      , mtl                          >= 2.0
-                     , resourcet                    >= 0.4.1
+                     , conduit                      >= 0.5.4
   ghc-options:     -Wall
 
 test-suite test
