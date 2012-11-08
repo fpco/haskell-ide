@@ -21,7 +21,7 @@ import           Control.Monad.Writer      (MonadWriter, tell)
 import qualified Data.ByteString.Base64    as B64
 import           Data.Typeable             (Typeable)
 import           Filesystem                (createTree)
-import           Filesystem.Path.CurrentOS (directory, encode, fromText)
+import           Filesystem.Path.CurrentOS (directory, encode, fromText, toText)
 
 -- | Create a template file from a stream of file/contents combinations.
 --
@@ -34,13 +34,13 @@ createTemplate = awaitForever $ \(fp, getBS) -> do
     case runException $ yield bs $$ decodeUtf8 =$ sinkNull of
         Left{} -> do
             yield "{-# START_FILE BASE64 "
-            yield $ encode fp
+            yield $ encodeUtf8 $ either id id $ toText fp
             yield " #-}\n"
             yield $ B64.encode bs
             yield "\n"
         Right{} -> do
             yield "{-# START_FILE "
-            yield $ encode fp
+            yield $ encodeUtf8 $ either id id $ toText fp
             yield " #-}\n"
             yield bs
             yield "\n"
