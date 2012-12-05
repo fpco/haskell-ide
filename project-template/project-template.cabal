@@ -1,5 +1,5 @@
 name:                project-template
-version:             0.1.0.1
+version:             0.1.1
 synopsis:            Specify Haskell project templates and generate files
 description:         See initial blog post for explanation: <http://www.yesodweb.com/blog/2012/09/project-templates>
 homepage:            https://github.com/fpco/haskell-ide

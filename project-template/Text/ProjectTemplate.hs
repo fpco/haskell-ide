@@ -22,6 +22,7 @@ import qualified Data.ByteString.Base64    as B64
 import           Data.Typeable             (Typeable)
 import           Filesystem                (createTree)
 import           Filesystem.Path.CurrentOS (directory, fromText, toText)
+import qualified Data.Conduit.Base64
 
 -- | Create a template file from a stream of file/contents combinations.
 --
@@ -36,7 +37,7 @@ createTemplate = awaitForever $ \(fp, getBS) -> do
             yield "{-# START_FILE BASE64 "
             yield $ encodeUtf8 $ either id id $ toText fp
             yield " #-}\n"
-            yield $ B64.encode bs
+            yield $ B64.joinWith "\n" 76 $ B64.encode bs
             yield "\n"
         Just _ -> do
             yield "{-# START_FILE "
@@ -73,15 +74,20 @@ unpackTemplate perFile fixLine =
                 Nothing -> lift $ monadThrow $ InvalidInput t
                 Just (fp', isBinary) -> do
                     let src
-                            | isBinary  = binaryLoop
+                            | isBinary  = binaryLoop =$= Data.Conduit.Base64.decode
                             | otherwise = textLoop True
                     src =$ perFile (fromText fp')
                     start
 
     binaryLoop = do
-        await >>= maybe (lift $ monadThrow BinaryLoopNeedsOneLine) go
+        await >>= maybe (return ()) go
       where
-        go = yield . B64.decodeLenient . encodeUtf8
+        go t =
+            case getFileName t of
+                Just{} -> leftover t
+                Nothing -> do
+                    yield $ encodeUtf8 t
+                    binaryLoop
     textLoop isFirst =
         await >>= maybe (return ()) go
       where
