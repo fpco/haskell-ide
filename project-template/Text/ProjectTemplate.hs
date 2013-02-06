@@ -23,6 +23,9 @@ import           Data.Typeable             (Typeable)
 import           Filesystem                (createTree)
 import           Filesystem.Path.CurrentOS (directory, fromText, toText)
 import qualified Data.Conduit.Base64
+import qualified Data.Conduit.Binary       as CB
+import qualified Data.Conduit.Text         as CT
+import qualified Data.Conduit.List         as CL
 
 -- | Create a template file from a stream of file/contents combinations.
 --
@@ -32,7 +35,7 @@ createTemplate
     => GInfConduit (FilePath, m ByteString) m ByteString
 createTemplate = awaitForever $ \(fp, getBS) -> do
     bs <- lift getBS
-    case yield bs $$ decodeUtf8 =$ sinkNull of
+    case yield bs $$ CT.decode CT.utf8 =$ sinkNull of
         Nothing -> do
             yield "{-# START_FILE BASE64 "
             yield $ encodeUtf8 $ either id id $ toText fp
@@ -64,7 +67,7 @@ unpackTemplate
     -> (Text -> Text) -- ^ fix each input line, good for variables
     -> Sink ByteString m ()
 unpackTemplate perFile fixLine =
-    decodeUtf8 =$ lines =$ map fixLine =$ start
+    CT.decode CT.utf8 =$ CT.lines =$ CL.map fixLine =$ start
   where
     start =
         await >>= maybe (return ()) go
@@ -120,7 +123,7 @@ receiveFS :: MonadResource m
           -> FileReceiver m
 receiveFS root rel = do
     liftIO $ createTree $ directory fp
-    writeFile fp
+    CB.sinkFile $ unpack fp
   where
     fp = root </> rel
 
