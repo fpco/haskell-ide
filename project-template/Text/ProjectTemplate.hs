@@ -3,6 +3,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeFamilies #-}
 module Text.ProjectTemplate
     ( -- * Create a template
       createTemplate
@@ -16,7 +18,9 @@ module Text.ProjectTemplate
     , ProjectTemplateException (..)
     ) where
 
-import           ClassyPrelude.Conduit
+import           ClassyPrelude
+import           Data.Conduit
+import           Data.Conduit.List         (sinkNull, consume)
 import           Control.Monad.Writer      (MonadWriter, tell)
 import qualified Data.ByteString.Base64    as B64
 import           Data.Typeable             (Typeable)
@@ -31,8 +35,11 @@ import qualified Data.Conduit.List         as CL
 --
 -- Since 0.1.0
 createTemplate
-    :: Monad m
-    => GInfConduit (FilePath, m ByteString) m ByteString
+#if MIN_VERSION_conduit(1, 0, 0)
+    :: Monad m => Conduit (FilePath, m ByteString) m ByteString
+#else
+    :: Monad m => GInfConduit (FilePath, m ByteString) m ByteString
+#endif
 createTemplate = awaitForever $ \(fp, getBS) -> do
     bs <- lift getBS
     case yield bs $$ CT.decode CT.utf8 =$ sinkNull of
