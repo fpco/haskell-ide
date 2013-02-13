@@ -5,7 +5,8 @@ module Text.ProjectTemplateSpec where
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Text.ProjectTemplate
-import ClassyPrelude.Conduit
+import ClassyPrelude
+import Data.Conduit
 import Control.Monad.Trans.Writer (execWriter)
 import Test.QuickCheck.Arbitrary
 import Data.Char (isAlphaNum)

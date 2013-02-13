@@ -34,11 +34,12 @@ test-suite test
     type: exitcode-stdio-1.0
     build-depends:   base
                    , project-template
-                   , classy-prelude-conduit
+                   , classy-prelude
                    , hspec >= 1.3
                    , transformers
                    , QuickCheck
                    , base64-bytestring
+                   , conduit
     ghc-options:     -Wall
 
 source-repository head

@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes            #-}
 module Text.ProjectTemplate
     ( -- * Create a template
       createTemplate
