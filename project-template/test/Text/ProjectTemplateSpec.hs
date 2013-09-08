@@ -5,12 +5,18 @@ module Text.ProjectTemplateSpec where
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Text.ProjectTemplate
-import ClassyPrelude
+import BasicPrelude
 import Data.Conduit
 import Control.Monad.Trans.Writer (execWriter)
 import Test.QuickCheck.Arbitrary
 import Data.Char (isAlphaNum)
 import qualified Data.ByteString.Base64 as B64
+import Data.Text (pack, unpack)
+import Data.Text.Lazy (toChunks, fromChunks)
+import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString as S
+import qualified Data.Map as Map
+import Filesystem.Path.CurrentOS (decodeString)
 
 spec :: Spec
 spec = do
@@ -19,25 +25,25 @@ spec = do
             let m' =
                         execWriter
                       $ runExceptionT_
-                      $ mapM_ (yield . second return) (unpack m)
+                      $ mapM_ (yield . second return) (Map.toList m)
                      $$ createTemplate
                      =$ unpackTemplate receiveMem id
-                m'' = pack $ map (second $ concat . toChunks) $ unpack m'
-             in if m == m'' then True else error (show m'')
+                m'' = Map.fromList $ map (second $ mconcat . L.toChunks) $ Map.toList m'
+             in if m == m'' then True else error (unpack $ show m'')
     describe "binaries" $ do
         prop "works with multilines" $ \words ->
-            let bs = pack words
+            let bs = S.pack words
                 encoded = B64.joinWith "\n" 5 $ B64.encode bs
                 content = "{-# START_FILE BASE64 foo #-}\n" ++ encoded
                 m = execWriter $ runExceptionT_ $ yield content $$ unpackTemplate receiveMem id
-             in lookup "foo" m == Just (fromChunks [bs])
+             in Map.lookup "foo" m == Just (L.fromChunks [bs])
 
 newtype Helper = Helper (Map FilePath ByteString)
     deriving (Show, Eq)
 
 instance Arbitrary Helper where
     arbitrary =
-        Helper . pack <$> mapM (const $ (pack . def "foo" . filter isAlphaNum *** pack . def (unpack $ asByteString "bar")) <$> arbitrary) [1..10 :: Int]
+        Helper . Map.fromList <$> mapM (const $ (decodeString . def "foo" . filter isAlphaNum *** S.pack . def (S.unpack "bar")) <$> arbitrary) [1..10 :: Int]
       where
         def x y
             | null y = x
