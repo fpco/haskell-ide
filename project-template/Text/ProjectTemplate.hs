@@ -19,18 +19,21 @@ module Text.ProjectTemplate
     , ProjectTemplateException (..)
     ) where
 
-import           ClassyPrelude
+import           BasicPrelude
 import           Data.Conduit
 import           Data.Conduit.List         (sinkNull, consume)
 import           Control.Monad.Writer      (MonadWriter, tell)
 import qualified Data.ByteString.Base64    as B64
 import           Data.Typeable             (Typeable)
 import           Filesystem                (createTree)
-import           Filesystem.Path.CurrentOS (directory, fromText, toText)
+import           Filesystem.Path.CurrentOS (directory, fromText, toText, encodeString)
 import qualified Data.Conduit.Base64
 import qualified Data.Conduit.Binary       as CB
 import qualified Data.Conduit.Text         as CT
 import qualified Data.Conduit.List         as CL
+import Data.Text.Encoding (encodeUtf8)
+import qualified Data.ByteString.Lazy as L
+import qualified Data.Map as Map
 
 -- | Create a template file from a stream of file/contents combinations.
 --
@@ -131,7 +134,7 @@ receiveFS :: MonadResource m
           -> FileReceiver m
 receiveFS root rel = do
     liftIO $ createTree $ directory fp
-    CB.sinkFile $ unpack fp
+    CB.sinkFile $ encodeString fp
   where
     fp = root </> rel
 
@@ -144,7 +147,7 @@ receiveMem :: MonadWriter (Map FilePath LByteString) m
            => FileReceiver m
 receiveMem fp = do
     bss <- consume
-    lift $ tell $ singleton fp $ fromChunks bss
+    lift $ tell $ Map.singleton fp $ L.fromChunks bss
 
 -- | Exceptions that can be thrown.
 --
