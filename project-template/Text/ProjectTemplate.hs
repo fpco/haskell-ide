@@ -1,11 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE TypeFamilies          #-}
 module Text.ProjectTemplate
     ( -- * Create a template
       createTemplate
@@ -19,31 +17,39 @@ module Text.ProjectTemplate
     , ProjectTemplateException (..)
     ) where
 
-import           BasicPrelude
-import           Data.Conduit
-import           Data.Conduit.List         (sinkNull, consume)
+import           Control.Exception         (Exception, assert)
+import           Control.Monad             (unless)
+import           Control.Monad.IO.Class    (liftIO)
+import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Writer      (MonadWriter, tell)
+import           Data.ByteString           (ByteString)
+import qualified Data.ByteString           as S
 import qualified Data.ByteString.Base64    as B64
+import qualified Data.ByteString.Lazy      as L
+import           Data.Conduit              (Conduit, MonadResource, MonadThrow,
+                                            Sink, await, awaitForever, leftover,
+                                            monadThrow, yield, ($$), (=$),
+                                            (=$=))
+import qualified Data.Conduit.Binary       as CB
+import           Data.Conduit.List         (consume, sinkNull)
+import qualified Data.Conduit.List         as CL
+import qualified Data.Conduit.Text         as CT
+import           Data.Map                  (Map)
+import qualified Data.Map                  as Map
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import           Data.Text.Encoding        (encodeUtf8)
 import           Data.Typeable             (Typeable)
 import           Filesystem                (createTree)
-import           Filesystem.Path.CurrentOS (directory, fromText, toText, encodeString)
-import qualified Data.Conduit.Base64
-import qualified Data.Conduit.Binary       as CB
-import qualified Data.Conduit.Text         as CT
-import qualified Data.Conduit.List         as CL
-import Data.Text.Encoding (encodeUtf8)
-import qualified Data.ByteString.Lazy as L
-import qualified Data.Map as Map
+import           Filesystem.Path.CurrentOS (FilePath, directory, encodeString,
+                                            fromText, toText, (</>))
+import           Prelude                   hiding (FilePath)
 
 -- | Create a template file from a stream of file/contents combinations.
 --
 -- Since 0.1.0
 createTemplate
-#if MIN_VERSION_conduit(1, 0, 0)
     :: Monad m => Conduit (FilePath, m ByteString) m ByteString
-#else
-    :: Monad m => GInfConduit (FilePath, m ByteString) m ByteString
-#endif
 createTemplate = awaitForever $ \(fp, getBS) -> do
     bs <- lift getBS
     case yield bs $$ CT.decode CT.utf8 =$ sinkNull of
@@ -88,7 +94,7 @@ unpackTemplate perFile fixLine =
                 Nothing -> lift $ monadThrow $ InvalidInput t
                 Just (fp', isBinary) -> do
                     let src
-                            | isBinary  = binaryLoop =$= Data.Conduit.Base64.decode
+                            | isBinary  = binaryLoop =$= decode64
                             | otherwise = textLoop True
                     src =$ perFile (fromText fp')
                     start
@@ -114,7 +120,7 @@ unpackTemplate perFile fixLine =
                     textLoop False
 
     getFileName t =
-        case words t of
+        case T.words t of
             ["{-#", "START_FILE", fn, "#-}"] -> Just (fn, False)
             ["{-#", "START_FILE", "BASE64", fn, "#-}"] -> Just (fn, True)
             _ -> Nothing
@@ -143,7 +149,7 @@ receiveFS root rel = do
 -- > execWriter $ runExceptionT_ $ src $$ unpackTemplate receiveMem id
 --
 -- Since 0.1.0
-receiveMem :: MonadWriter (Map FilePath LByteString) m
+receiveMem :: MonadWriter (Map FilePath L.ByteString) m
            => FileReceiver m
 receiveMem fp = do
     bss <- consume
@@ -156,3 +162,35 @@ data ProjectTemplateException = InvalidInput Text
                               | BinaryLoopNeedsOneLine
     deriving (Show, Typeable)
 instance Exception ProjectTemplateException
+
+decode64 :: Monad m => Conduit ByteString m ByteString
+decode64 = codeWith 4 B64.decodeLenient
+
+codeWith :: Monad m => Int -> (ByteString -> ByteString) -> Conduit ByteString m ByteString
+codeWith size f =
+    loop
+  where
+    loop = await >>= maybe (return ()) push
+
+    loopWith bs
+        | S.null bs = loop
+        | otherwise = await >>= maybe (yield (f bs)) (pushWith bs)
+
+    push bs = do
+        let (x, y) = S.splitAt (len - (len `mod` size)) bs
+        unless (S.null x) $ yield $ f x
+        loopWith y
+      where
+        len = S.length bs
+
+    pushWith bs1 bs2 | S.length bs1 + S.length bs2 < size = loopWith (S.append bs1 bs2)
+    pushWith bs1 bs2 = assertion1 $ assertion2 $ do
+        yield $ f bs1'
+        push y
+      where
+        m = S.length bs1 `mod` size
+        (x, y) = S.splitAt (size - m) bs2
+        bs1' = S.append bs1 x
+
+        assertion1 = assert $ S.length bs1 < size
+        assertion2 = assert $ S.length bs1' `mod` size == 0
