@@ -6,6 +6,7 @@ import Test.Hspec.QuickCheck
 import Text.ProjectTemplate
 import Data.Conduit
 import Control.Monad.Trans.Writer (execWriter)
+import Control.Monad.Trans.Resource (runExceptionT_)
 import Test.QuickCheck.Arbitrary
 import Data.Char (isAlphaNum)
 import qualified Data.ByteString.Base64 as B64
