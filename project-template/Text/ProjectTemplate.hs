@@ -17,33 +17,35 @@ module Text.ProjectTemplate
     , ProjectTemplateException (..)
     ) where
 
-import           Control.Exception         (Exception, assert)
-import           Control.Monad             (unless)
-import           Control.Monad.IO.Class    (liftIO)
-import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Writer      (MonadWriter, tell)
-import           Data.ByteString           (ByteString)
-import qualified Data.ByteString           as S
-import qualified Data.ByteString.Base64    as B64
-import qualified Data.ByteString.Lazy      as L
-import           Data.Conduit              (Conduit, MonadResource, MonadThrow,
-                                            Sink, await, awaitForever, leftover,
-                                            monadThrow, yield, ($$), (=$),
-                                            (=$=))
-import qualified Data.Conduit.Binary       as CB
-import           Data.Conduit.List         (consume, sinkNull)
-import qualified Data.Conduit.List         as CL
-import qualified Data.Conduit.Text         as CT
-import           Data.Map                  (Map)
-import qualified Data.Map                  as Map
-import           Data.Text                 (Text)
-import qualified Data.Text                 as T
-import           Data.Text.Encoding        (encodeUtf8)
-import           Data.Typeable             (Typeable)
-import           Filesystem                (createTree)
-import           Filesystem.Path.CurrentOS (FilePath, directory, encodeString,
-                                            fromText, toText, (</>))
-import           Prelude                   hiding (FilePath)
+import           Control.Exception            (Exception, assert)
+import           Control.Monad                (unless)
+import           Control.Monad.IO.Class       (liftIO)
+import           Control.Monad.Trans.Class    (lift)
+import           Control.Monad.Trans.Resource (MonadResource, MonadThrow,
+                                               monadThrow)
+import           Control.Monad.Writer         (MonadWriter, tell)
+import           Data.ByteString              (ByteString)
+import qualified Data.ByteString              as S
+import qualified Data.ByteString.Base64       as B64
+import qualified Data.ByteString.Lazy         as L
+import           Data.Conduit                 (Conduit, Sink, await,
+                                               awaitForever, leftover, yield,
+                                               ($$), (=$), (=$=))
+import qualified Data.Conduit.Binary          as CB
+import           Data.Conduit.List            (consume, sinkNull)
+import qualified Data.Conduit.List            as CL
+import qualified Data.Conduit.Text            as CT
+import           Data.Map                     (Map)
+import qualified Data.Map                     as Map
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
+import           Data.Text.Encoding           (encodeUtf8)
+import           Data.Typeable                (Typeable)
+import           Filesystem                   (createTree)
+import           Filesystem.Path.CurrentOS    (FilePath, directory,
+                                               encodeString, fromText, toText,
+                                               (</>))
+import           Prelude                      hiding (FilePath)
 
 -- | Create a template file from a stream of file/contents combinations.
 --
