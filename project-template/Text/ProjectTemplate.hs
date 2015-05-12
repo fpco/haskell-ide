@@ -41,11 +41,8 @@ import           Data.Text                    (Text)
 import qualified Data.Text                    as T
 import           Data.Text.Encoding           (encodeUtf8)
 import           Data.Typeable                (Typeable)
-import           Filesystem                   (createTree)
-import           Filesystem.Path.CurrentOS    (FilePath, directory,
-                                               encodeString, fromText, toText,
-                                               (</>))
-import           Prelude                      hiding (FilePath)
+import           System.Directory             (createDirectoryIfMissing)
+import           System.FilePath              (takeDirectory, (</>))
 
 -- | Create a template file from a stream of file/contents combinations.
 --
@@ -57,13 +54,13 @@ createTemplate = awaitForever $ \(fp, getBS) -> do
     case yield bs $$ CT.decode CT.utf8 =$ sinkNull of
         Nothing -> do
             yield "{-# START_FILE BASE64 "
-            yield $ encodeUtf8 $ either id id $ toText fp
+            yield $ encodeUtf8 $ T.pack fp
             yield " #-}\n"
             yield $ B64.joinWith "\n" 76 $ B64.encode bs
             yield "\n"
         Just _ -> do
             yield "{-# START_FILE "
-            yield $ encodeUtf8 $ either id id $ toText fp
+            yield $ encodeUtf8 $ T.pack fp
             yield " #-}\n"
             yield bs
             yield "\n"
@@ -98,7 +95,7 @@ unpackTemplate perFile fixLine =
                     let src
                             | isBinary  = binaryLoop =$= decode64
                             | otherwise = textLoop True
-                    src =$ perFile (fromText fp')
+                    src =$ perFile (T.unpack fp')
                     start
 
     binaryLoop = do
@@ -141,8 +138,8 @@ receiveFS :: MonadResource m
           => FilePath -- ^ root
           -> FileReceiver m
 receiveFS root rel = do
-    liftIO $ createTree $ directory fp
-    CB.sinkFile $ encodeString fp
+    liftIO $ createDirectoryIfMissing True $ takeDirectory fp
+    CB.sinkFile fp
   where
     fp = root </> rel
 

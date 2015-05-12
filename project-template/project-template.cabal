@@ -1,5 +1,5 @@
 name:                project-template
-version:             0.1.4.2
+version:             0.2.0
 synopsis:            Specify Haskell project templates and generate files
 description:         See initial blog post for explanation: <http://www.yesodweb.com/blog/2012/09/project-templates>
 homepage:            https://github.com/fpco/haskell-ide
@@ -10,13 +10,12 @@ maintainer:          michael@fpcomplete.com
 category:            Development
 build-type:          Simple
 cabal-version:       >=1.8
+extra-source-files:  README.md ChangeLog.md
 
 library
   exposed-modules:     Text.ProjectTemplate
   build-depends:       base                         >= 4          && < 5
                      , base64-bytestring
-                     , system-filepath              >= 0.4
-                     , system-fileio                >= 0.3
                      , text                         >= 0.11
                      , bytestring                   >= 0.9
                      , transformers                 >= 0.2
@@ -25,6 +24,8 @@ library
                      , conduit-extra
                      , resourcet                    >= 0.4.3
                      , containers
+                     , filepath
+                     , directory
   ghc-options:     -Wall
 
 test-suite test
@@ -42,7 +43,6 @@ test-suite test
                    , text
                    , bytestring
                    , containers
-                   , system-filepath
                    , resourcet
     ghc-options:     -Wall
 

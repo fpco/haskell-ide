@@ -13,12 +13,9 @@ import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as S
 import qualified Data.Map as Map
-import Filesystem.Path.CurrentOS (decodeString)
 import Control.Arrow (second, (***))
 import Control.Applicative ((<$>))
 import Data.Monoid (mconcat, mappend)
-import Prelude hiding (FilePath)
-import Filesystem.Path (FilePath)
 
 spec :: Spec
 spec = do
@@ -45,7 +42,7 @@ newtype Helper = Helper (Map.Map FilePath S.ByteString)
 
 instance Arbitrary Helper where
     arbitrary =
-        Helper . Map.fromList <$> mapM (const $ (decodeString . def "foo" . filter isAlphaNum *** S.pack . def (S.unpack "bar")) <$> arbitrary) [1..10 :: Int]
+        Helper . Map.fromList <$> mapM (const $ (def "foo" . filter isAlphaNum *** S.pack . def (S.unpack "bar")) <$> arbitrary) [1..10 :: Int]
       where
         def x y
             | null y = x
