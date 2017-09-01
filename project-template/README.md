@@ -84,7 +84,7 @@ than to discuss theoretical ideas. In this case, however, I think it's worth
 fleshing out the idea a bit before jumping in and implementing something. So
 I'm going to lay out my proposal here, and ask for everyone's input and
 recommendations before we start implementation. I recommend the discussion be
-targetted at the [Haskell IDE Google
+targeted at the [Haskell IDE Google
 Group](https://groups.google.com/d/forum/haskell-ide) as much as possible.
 
 For file format: let's use JSON. I'm not worried about file size: these project
