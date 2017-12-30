@@ -22,7 +22,7 @@ import           Control.Monad                (unless)
 import           Control.Monad.IO.Class       (liftIO)
 import           Control.Monad.Trans.Class    (lift)
 import           Control.Monad.Trans.Resource (MonadResource, MonadThrow,
-                                               monadThrow)
+                                               throwM)
 import           Control.Monad.Writer         (MonadWriter, tell)
 import           Data.ByteString              (ByteString)
 import qualified Data.ByteString              as S
@@ -90,7 +90,7 @@ unpackTemplate perFile fixLine =
       where
         go t =
             case getFileName t of
-                Nothing -> lift $ monadThrow $ InvalidInput t
+                Nothing -> lift $ throwM $ InvalidInput t
                 Just (fp', isBinary) -> do
                     let src
                             | isBinary  = binaryLoop =$= decode64
