@@ -28,9 +28,9 @@ import           Data.ByteString              (ByteString)
 import qualified Data.ByteString              as S
 import qualified Data.ByteString.Base64       as B64
 import qualified Data.ByteString.Lazy         as L
-import           Data.Conduit                 (Conduit, Sink, await,
+import           Data.Conduit                 (ConduitM, await,
                                                awaitForever, leftover, yield,
-                                               ($$), (=$), (=$=))
+                                               runConduit, (.|))
 import qualified Data.Conduit.Binary          as CB
 import           Data.Conduit.List            (consume, sinkNull)
 import qualified Data.Conduit.List            as CL
@@ -41,6 +41,7 @@ import           Data.Text                    (Text)
 import qualified Data.Text                    as T
 import           Data.Text.Encoding           (encodeUtf8)
 import           Data.Typeable                (Typeable)
+import           Data.Void                    (Void)
 import           System.Directory             (createDirectoryIfMissing)
 import           System.FilePath              (takeDirectory, (</>))
 
@@ -48,10 +49,10 @@ import           System.FilePath              (takeDirectory, (</>))
 --
 -- Since 0.1.0
 createTemplate
-    :: Monad m => Conduit (FilePath, m ByteString) m ByteString
+    :: Monad m => ConduitM (FilePath, m ByteString) ByteString m ()
 createTemplate = awaitForever $ \(fp, getBS) -> do
     bs <- lift getBS
-    case yield bs $$ CT.decode CT.utf8 =$ sinkNull of
+    case runConduit $ yield bs .| CT.decode CT.utf8 .| sinkNull of
         Nothing -> do
             yield "{-# START_FILE BASE64 "
             yield $ encodeUtf8 $ T.pack fp
@@ -79,11 +80,11 @@ createTemplate = awaitForever $ \(fp, getBS) -> do
 -- Since 0.1.0
 unpackTemplate
     :: MonadThrow m
-    => (FilePath -> Sink ByteString m ()) -- ^ receive individual files
+    => (FilePath -> ConduitM ByteString o m ()) -- ^ receive individual files
     -> (Text -> Text) -- ^ fix each input line, good for variables
-    -> Sink ByteString m ()
+    -> ConduitM ByteString o m ()
 unpackTemplate perFile fixLine =
-    CT.decode CT.utf8 =$ CT.lines =$ CL.map fixLine =$ start
+    CT.decode CT.utf8 .| CT.lines .| CL.map fixLine .| start
   where
     start =
         await >>= maybe (return ()) go
@@ -93,9 +94,9 @@ unpackTemplate perFile fixLine =
                 Nothing -> lift $ throwM $ InvalidInput t
                 Just (fp', isBinary) -> do
                     let src
-                            | isBinary  = binaryLoop =$= decode64
+                            | isBinary  = binaryLoop .| decode64
                             | otherwise = textLoop True
-                    src =$ perFile (T.unpack fp')
+                    src .| perFile (T.unpack fp')
                     start
 
     binaryLoop = do
@@ -127,7 +128,7 @@ unpackTemplate perFile fixLine =
 -- | The first argument to 'unpackTemplate', specifying how to receive a file.
 --
 -- Since 0.1.0
-type FileReceiver m = FilePath -> Sink ByteString m ()
+type FileReceiver m = FilePath -> ConduitM ByteString Void m ()
 
 -- | Receive files to the given folder on the filesystem.
 --
@@ -162,10 +163,10 @@ data ProjectTemplateException = InvalidInput Text
     deriving (Show, Typeable)
 instance Exception ProjectTemplateException
 
-decode64 :: Monad m => Conduit ByteString m ByteString
+decode64 :: Monad m => ConduitM ByteString ByteString m ()
 decode64 = codeWith 4 B64.decodeLenient
 
-codeWith :: Monad m => Int -> (ByteString -> ByteString) -> Conduit ByteString m ByteString
+codeWith :: Monad m => Int -> (ByteString -> ByteString) -> ConduitM ByteString ByteString m ()
 codeWith size f =
     loop
   where

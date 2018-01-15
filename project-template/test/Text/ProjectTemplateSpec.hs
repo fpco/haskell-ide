@@ -22,9 +22,10 @@ spec = do
         prop "is idempotent" $ \(Helper m) -> do
             m' <-
                         execWriterT
+                      $ runConduit
                       $ mapM_ (yield . second return) (Map.toList m)
-                     $$ createTemplate
-                     =$ unpackTemplate receiveMem id
+                     .| createTemplate
+                     .| unpackTemplate receiveMem id
             let m'' = Map.fromList $ map (second $ mconcat . L.toChunks) $ Map.toList m'
             m `shouldBe` m''
     describe "binaries" $ do
@@ -32,7 +33,7 @@ spec = do
             let bs = S.pack words'
                 encoded = B64.joinWith "\n" 5 $ B64.encode bs
                 content = "{-# START_FILE BASE64 foo #-}\n" `mappend` encoded
-            m <- execWriterT $ yield content $$ unpackTemplate receiveMem id
+            m <- execWriterT $ runConduit $ yield content .| unpackTemplate receiveMem id
             Map.lookup "foo" m `shouldBe` Just (L.fromChunks [bs])
 
 newtype Helper = Helper (Map.Map FilePath S.ByteString)
