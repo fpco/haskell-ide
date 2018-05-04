@@ -100,7 +100,7 @@ unpackTemplate perFile fixLine =
                     start
 
     binaryLoop = do
-        await >>= maybe (return ()) go
+        await >>= maybe (yield "\n") go
       where
         go t =
             case getFileName t of
@@ -109,7 +109,7 @@ unpackTemplate perFile fixLine =
                     yield $ encodeUtf8 t
                     binaryLoop
     textLoop isFirst =
-        await >>= maybe (return ()) go
+        await >>= maybe (yield "\n") go
       where
         go t =
             case getFileName t of
