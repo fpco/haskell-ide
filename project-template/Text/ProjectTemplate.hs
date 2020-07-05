@@ -33,6 +33,7 @@ import           Data.Conduit                 (ConduitM, await,
                                                runConduit, (.|))
 import qualified Data.Conduit.Binary          as CB
 import           Data.Conduit.List            (consume, sinkNull)
+import           Conduit                      (concatMapC, chunksOfCE)
 import qualified Data.Conduit.List            as CL
 import qualified Data.Conduit.Text            as CT
 import           Data.Map                     (Map)
@@ -57,7 +58,7 @@ createTemplate = awaitForever $ \(fp, getBS) -> do
             yield "{-# START_FILE BASE64 "
             yield $ encodeUtf8 $ T.pack fp
             yield " #-}\n"
-            yield $ B64.joinWith "\n" 76 $ B64.encode bs
+            yield (B64.encode bs) .| chunksOfCE 76 .| concatMapC (\x -> [x, "\n"])
             yield "\n"
         Just _ -> do
             yield "{-# START_FILE "

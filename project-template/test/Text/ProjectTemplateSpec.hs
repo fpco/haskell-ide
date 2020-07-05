@@ -31,10 +31,19 @@ spec = do
     describe "binaries" $ do
         prop "works with multilines" $ \words' -> do
             let bs = S.pack words'
-                encoded = B64.joinWith "\n" 5 $ B64.encode bs
+                encoded = joinWith "\n" 5 $ B64.encode bs
                 content = "{-# START_FILE BASE64 foo #-}\n" `mappend` encoded
             m <- execWriterT $ runConduit $ yield content .| unpackTemplate receiveMem id
             Map.lookup "foo" m `shouldBe` Just (L.fromChunks [bs])
+
+joinWith :: S.ByteString -> Int -> S.ByteString -> S.ByteString
+joinWith joiner size = S.concat . map (`S.append` joiner) . chunksOf size
+
+chunksOf :: Int -> S.ByteString -> [S.ByteString]
+chunksOf _ bs | S.null bs = []
+chunksOf size bs =
+    let (x, y) = S.splitAt size bs
+     in x : chunksOf size y
 
 newtype Helper = Helper (Map.Map FilePath S.ByteString)
     deriving (Show, Eq)
